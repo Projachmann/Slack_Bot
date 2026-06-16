@@ -26,6 +26,18 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
   });
 });
 
+app.command("/bigbrother-kanye", async ({ ack, respond }) =>{
+  await ack();
+
+  try{
+    const response = await axios.get("https://api.kanye.rest/");
+    await respond({ text: `Kanye once said:\n${response.data.quote}`})
+  }catch(err){
+    await respond({ text: `Kanye did not say anything.`})
+    console.log(err);
+  }
+})
+
 app.command("/bigbrother-scanurl", async ({ command, ack, respond }) => {
   const url = command.text;
 
