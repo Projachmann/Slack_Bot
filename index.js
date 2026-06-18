@@ -22,7 +22,9 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
     text:
       `Available Commands:
       /bigbrother-ping - Check bot latency
-      /bigbrother-help - Shows this interface`
+      /bigbrother-help - Shows this interface
+      /bigbrother-scanurl - Scans the given URL
+      /bigbrother-kanye - Shows a Kanye quote`
   });
 });
 
