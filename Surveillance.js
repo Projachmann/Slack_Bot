@@ -26,7 +26,7 @@ class Surveillance{
         let rawData;
 
         try{
-            const data = await fs.readFile("testchannels.json", "utf8");
+            const data = await fs.readFile("myChannels.json", "utf8");
             rawData = JSON.parse(data);
         }catch(err){
             console.log(err);
