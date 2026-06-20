@@ -14,10 +14,6 @@ const app = new App({
 
 const surveillance = new Surveillance(app);
 
-app.command("/bigbrother-surveillance", async ({ command, ack, respond}) => {
-  
-})
-
 app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
   await ack();
@@ -37,10 +33,7 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
 
 (async () => {
   await app.start();
-  await surveillance.listAllChannels();
+  // await surveillance.listAllChannels();
+  surveillance.historyCheck("U080F22CTJN");
   console.log("bot is running!");
 })();
-
-cron.schedule("0 0 * * 0", async () => {
-  surveillance.listAllChannels();
-});

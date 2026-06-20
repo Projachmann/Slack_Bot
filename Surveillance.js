@@ -19,12 +19,45 @@ class Surveillance{
         }
     }
 
-    async historyCheck(){
+    async historyCheck(user){
+        this.user = user;
+        let cursor;
+        let allMessages = [];
+        let rawData;
+
         try{
-            
+            const data = await fs.readFile("testchannels.json", "utf8");
+            rawData = JSON.parse(data);
         }catch(err){
             console.log(err);
         }
+
+        for(let i = 0; i < rawData.length; i++){
+            cursor = undefined;
+            this.channel = rawData[i].id;
+
+            try{
+                do{
+                    const res = await axios.get("https://slack.com/api/conversations.history", {
+                        headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+                        params: { channel: this.channel, oldest: Math.floor(Date.now() / 1000) - 604800, cursor: cursor }
+                    })
+
+                    if (!res.data.ok) {
+                        console.log(res.data.error);
+                        break;
+                    }
+
+                    const messages = res.data.messages.filter(m => m.user === this.user);
+                    allMessages = allMessages.concat(messages);
+
+                    cursor = res.data.response_metadata?.next_cursor;
+                }while(cursor)
+            }catch(err){
+                console.log(err);
+            }
+        }
+        console.log(allMessages);
     }
 
     async listAllChannels(){
