@@ -1,0 +1,4 @@
+Surveillance.js:
+- Impliment Thread reading
+- Saving Data from the last 7 days => not alway a new api call
+- Checking WHAT user writes and putting it in the loyalty score

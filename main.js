@@ -31,9 +31,20 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
   });
 });
 
+app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
+  const userID = command.text.trim();
+
+  await ack();
+
+  const loyaltyScore = await surveillance.calculateLoyalyScore(userID);
+
+  await respond({
+    text: `Your Loyalty score is: ${loyaltyScore}`
+  });
+});
+
 (async () => {
   await app.start();
   // await surveillance.listAllChannels();
-  surveillance.historyCheck("U080F22CTJN");
   console.log("bot is running!");
 })();
