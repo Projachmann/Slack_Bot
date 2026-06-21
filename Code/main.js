@@ -5,6 +5,7 @@ const cron = require("node-cron");
 const fs = require("fs/promises");
 const { App } = require("@slack/bolt");
 const Surveillance = require("../Code/Surveillance");
+const Telescreen = require("../Code/Telescreen");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -13,6 +14,9 @@ const app = new App({
 });
 
 const surveillance = new Surveillance(app);
+const telescreen = new Telescreen(app);
+
+const channelID = "C0BBBCER55W";
 
 app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
@@ -42,6 +46,8 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
     text: `Your Loyalty score is: ${loyaltyScore}`
   });
 });
+
+telescreen.startTelescreen(channelID);
 
 (async () => {
   await app.start();
