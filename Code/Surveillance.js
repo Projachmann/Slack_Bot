@@ -44,7 +44,7 @@ class Surveillance{
 
         //Reading the json file with all the channels that should be scanned
         try{
-            const data = await fs.readFile("channels.json", "utf8");
+            const data = await fs.readFile("JSON files/channels.json", "utf8");
             rawData = JSON.parse(data);
             console.log("Json read!");
         }catch(err){
