@@ -5,3 +5,8 @@ Surveillance.js:
 
 Police.js:
 - Connect negative and positive sentiment with Surveillance
+
+
+
+General:
+- DMing the bot should be possible
