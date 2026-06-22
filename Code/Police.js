@@ -28,12 +28,13 @@ class Police{
         let data;
 
         try{
-            const res = await axios.post("https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest", {
+            const res = await axios.post("https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest", {
                 inputs: await this.preprocess(text) }, {
                 headers: { Authorization: `Bearer ${process.env.HF_TOKEN}` }
             });
 
             data = res.data;
+            console.log(data);
         }catch(err){
             console.log(err);
         }
@@ -42,7 +43,7 @@ class Police{
 
         data = data[0];
         
-        const val = [getValue("Positive"), getValue("Negative")];
+        const val = [getValue("positive"), getValue("negative")];
 
         function getValue(sentiment){
             for(let i = 0; i < data.length; i++){
@@ -61,6 +62,8 @@ class Police{
             if (!message.text) return;
             if (message.channel !== channelID) return;
 
+            console.log("Message received!");
+
             try{
                 const score = await this.callApi(message.text);
 
@@ -68,7 +71,7 @@ class Police{
                     await client.chat.postMessage({
                         channel: channelID,
                         thread_ts: message.ts,
-                        text: await this.getResponse("Negative", message.user),
+                        text: await this.getResponse("negative", message.user),
                     });
                 }
 
@@ -76,9 +79,11 @@ class Police{
                     await client.chat.postMessage({
                         channel: channelID,
                         thread_ts: message.ts,
-                        text: await this.getResponse("Positive", message.user),
+                        text: await this.getResponse("positive", message.user),
                     });
                 }
+
+                console.log(`Positive ${score[0]} | Negative ${score[1]}`)
             }catch(err){
                 console.log(err);
             }
@@ -89,10 +94,10 @@ class Police{
         let responses;
         let msg = "";
 
-        if(sent === "Negative"){
+        if(sent === "negative"){
             responses = await this.readFile("JSON files/negativeSentiment.json");
             msg = responses[Math.floor(Math.random() * responses.length)].replace("{user}", user);
-        }else if(sent === "Positive"){
+        }else if(sent === "positive"){
             responses = await this.readFile("JSON files/positiveSentiment.json");
             msg = responses[Math.floor(Math.random() * responses.length)].replace("{user}", user);
         }
