@@ -6,6 +6,7 @@ const fs = require("fs/promises");
 const { App } = require("@slack/bolt");
 const Surveillance = require("../Code/Surveillance");
 const Telescreen = require("../Code/Telescreen");
+const Police = require("../Code/Police");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -13,10 +14,13 @@ const app = new App({
   socketMode: true
 });
 
-const surveillance = new Surveillance(app);
-const telescreen = new Telescreen(app);
-
 const channelID = "C0BBBCER55W";
+const negativeThreshold = 0.75;
+const positiveThreshold = 0.85;
+
+const surveillance = new Surveillance(app);
+const telescreen = new Telescreen(app, channelID);
+const police = new Police(app, negativeThreshold, positiveThreshold, channelID);
 
 app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
@@ -47,7 +51,8 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
   });
 });
 
-telescreen.startTelescreen(channelID);
+telescreen.startTelescreen();
+police.register();
 
 (async () => {
   await app.start();

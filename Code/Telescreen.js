@@ -2,9 +2,12 @@ const axios = require("axios");
 const cron = require("node-cron");
 const fs = require("fs/promises");
 
+let channelID;
+
 class Telescreen{
-    constructor(app){
+    constructor(app, channel){
         this.app = app;
+        channelID = channel;
     }
 
     async readFile(file){
@@ -21,7 +24,7 @@ class Telescreen{
         return data;
     }
 
-    async propaganda(channelID){
+    async propaganda(){
         const data = await this.readFile("JSON files/broadcasts.json");
         const broadcast = await data[Math.floor(Math.random() * data.length)];
 
@@ -40,7 +43,7 @@ class Telescreen{
         }
     }
 
-    async twoMinuteHate(channelID){
+    async twoMinuteHate(){
         const data = await this.readFile("JSON files/twoMinuteHate.json");
         const broadcast = await data[Math.floor(Math.random() * data.length)];
 
@@ -59,14 +62,14 @@ class Telescreen{
         }
     }
 
-    async startTelescreen(channelID){
+    async startTelescreen(){
         let minutePropaganda = Math.floor(Math.random() * 60);
         let hourPropaganda = Math.floor(Math.random() * 24);
         let propagandaJob = null;
 
         //Daily two minute hate
         cron.schedule(`0 11 * * *`, () => {
-            this.twoMinuteHate(channelID);
+            this.twoMinuteHate();
 
             console.log("Two minute hate started!");
         });
@@ -76,7 +79,7 @@ class Telescreen{
             if (propagandaJob) propagandaJob.stop();
 
             propagandaJob = cron.schedule(`${minutePropaganda} ${hourPropaganda} * * *`, () => {
-                this.propaganda(channelID);
+                this.propaganda();
 
                 minutePropaganda = Math.floor(Math.random() * 60);
                 hourPropaganda = Math.floor(Math.random() * 24);
