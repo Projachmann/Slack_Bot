@@ -1,12 +1,15 @@
 Surveillance.js:
 - Impliment Thread reading
-- Saving Data from the last 7 days => not alway a new api call
+- Saving Data from the last 7 days => not always a new api call
 - Checking WHAT user writes and putting it in the loyalty score
 
 Police.js:
 - Connect negative and positive sentiment with Surveillance
 
-
+Truth.js:
+- Storing what headlines have already been seen and not always repeating them
+- Using count
+- Automating news with Telescreen
 
 General:
 - DMing the bot should be possible

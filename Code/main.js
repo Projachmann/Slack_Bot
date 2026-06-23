@@ -7,6 +7,7 @@ const { App } = require("@slack/bolt");
 const Surveillance = require("../Code/Surveillance");
 const Telescreen = require("../Code/Telescreen");
 const Police = require("../Code/Police");
+const Truth = require("../Code/Truth");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -21,6 +22,7 @@ const positiveThreshold = 0.85;
 const surveillance = new Surveillance(app);
 const telescreen = new Telescreen(app, channelID);
 const police = new Police(app, negativeThreshold, positiveThreshold, channelID);
+const truth = new Truth(app);
 
 app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
@@ -51,11 +53,20 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
   });
 });
 
+app.command("/bigbrother-news", async ({ ack, respond }) =>{
+  await ack();
+
+  const news = await truth.test();
+
+  await respond({
+    text: news[0]
+  })
+})
+
 telescreen.startTelescreen();
 police.register();
 
 (async () => {
   await app.start();
-  // await surveillance.listAllChannels();
   console.log("bot is running!");
 })();
