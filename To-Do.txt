@@ -6,6 +6,9 @@ Surveillance.js:
 Police.js:
 - Connect negative and positive sentiment with Surveillance
 
+Telescreen.js:
+- Making the two minute hate more interactive Ex.: message 1 minute before, new hate command?
+
 Truth.js:
 - Storing what headlines have already been seen and not always repeating them
 - Using count
