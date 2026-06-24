@@ -44,13 +44,13 @@ class Truth{
                         content: msg
                     }, {
                         role: "user",
-                        content: headline[0]
+                        content: headline[i]
                     }]
                 }, {
                     headers: { Authorization: `Bearer ${process.env.GROQ_TOKEN}`, }
                 });
 
-                const data = res.data.choices.map((c) => c.message.content);
+                const data = res.data.choices.map((c) => c.message.content.trim().replace(/^[""]|[""]$/g, ""));
                 returnData = returnData.concat(data);
             }
         }catch(err){
@@ -63,16 +63,11 @@ class Truth{
     async getRewrite(count = 1){
         const headline = await this.getNews(count);
         const rewrite = await this.rewriteHeadline(headline);
-        let allHeadlines;
+        const allHeadlines = rewrite.join("\n\n");
 
-        for(let i = 0; i < rewrite.length; i++){
-            console.log(headline[i] + "   <= the headline\n");
-            console.log(rewrite[i] + "   <= the rewrite\n\n");
+        console.log(allHeadlines);
 
-            allHeadlines = allHeadlines + "\n" + rewrite[i];
-        }
-
-        return rewrite;
+        return allHeadlines;
     }
 }
 

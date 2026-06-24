@@ -55,7 +55,7 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
 });
 
 app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
-  const count = command.text.trim();
+  let count = parseInt(command.text.trim());
 
   if(!Number.isInteger(count)){
     count = undefined;
