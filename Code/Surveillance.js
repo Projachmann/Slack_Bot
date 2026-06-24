@@ -1,5 +1,8 @@
 const axios = require("axios");
 const fs = require("fs/promises");
+const cron = require("node-cron");
+
+let channels = [];
 
 class Surveillance{
     constructor(app){
@@ -36,34 +39,48 @@ class Surveillance{
         return present;
     }
 
-    async historyCheck(user){
-        this.user = user;
-        let cursor;
-        let allMessages = [];
-        let rawData;
+    async readFile(file = "JSON files/channels.json"){
+        let rawData = [];
 
-        //Reading the json file with all the channels that should be scanned
         try{
-            const data = await fs.readFile("JSON files/channels.json", "utf8");
+            const data = await fs.readFile(file, "utf8");
             rawData = JSON.parse(data);
-            console.log("Json read!");
+            console.log("Json file read!");
         }catch(err){
             console.log(err);
         }
 
-        //Scannin the channels for messages from this.user => allMessages
-        for(let i = 0; i < rawData.length; i++){
-            cursor = undefined;
-            this.channel = rawData[i].id;
+        return rawData;
+    }
 
-            console.log(`Reading channel ${i + 1}/${rawData.length}`);
+    async writeFile(data, file = "JSON files/allMessages.json"){
+        try{
+            await fs.writeFile(file, JSON.stringify(data));
+        }catch(err){
+            console.log(err);
+        }
+
+        console.log("Messages saved!");
+    }
+
+    async getMessages(oldest = Math.floor(Date.now() / 1000) - 604800){
+        let cursor;
+        let allMessages = [];
+
+        console.log("Starting Reading messages");
+
+        for(let i = 0; i < channels.length; i++){
+            cursor = undefined;
+            const channel = channels[i].id;
+
+            console.log(`Reading channels: ${i + 1}/${channels.length}`);
 
             try{
                 do{
                     while(true){
                         const res = await axios.get("https://slack.com/api/conversations.history", {
                             headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
-                            params: { channel: this.channel, oldest: Math.floor(Date.now() / 1000) - 604800, cursor: cursor },
+                            params: { channel: channel, oldest: oldest, cursor: cursor },
                             validateStatus: () => true
                         });
 
@@ -79,33 +96,54 @@ class Surveillance{
                             break;
                         }
 
-                        const messages = res.data.messages.filter(m => m.user === this.user).map(m => ({ ...m, channel: rawData[i].id }));
+                        const messages = res.data.messages.map(m => ({ ...m, channel: channels[i].id }));
                         allMessages = allMessages.concat(messages);
 
                         cursor = res.data.response_metadata?.next_cursor;
                         break;
                     }
-                }while(cursor)
+                }while(cursor);
             }catch(err){
                 console.log(err);
             }
         }
 
-        console.log("Messages extracted!");
-
         return allMessages;
     }
 
+    async historyCheck(user){
+        const allMessages = await this.readFile("JSON files/allMessages.json");
+        const userMessages = allMessages.filter(m => m.user === user);
+
+        return userMessages;
+    }
+
+    async updateFiles(){
+        const oldMsg = await this.readFile("JSON files/allMessages.json");
+        const youngest = oldMsg.reduce((a, b) => a.ts > b.ts ? a : b);
+        const newMsg = await this.getMessages(youngest.ts);
+
+        console.log(newMsg.length);
+        
+        const cutoff = Math.floor(Date.now() / 1000) - 604800;
+        const merged = [...oldMsg.filter(m => parseFloat(m.ts) > cutoff), ...newMsg];
+
+        await this.writeFile(merged);
+    }
+
     async calculateLoyalyScore(user){
+        await this.updateFiles();
+
         const userMessages = await this.historyCheck(user);
 
         const activeDays = new Set(userMessages.map(msg => new Date(msg.ts * 1000).toDateString())).size;
-        console.log(activeDays);
         const messageCount = userMessages.length;
-        console.log(messageCount);
         const channelCount = new Set(userMessages.map(msg => msg.channel)).size;
+        const present = await this.presenceCheck(user);
+
+        console.log(activeDays);
+        console.log(messageCount);
         console.log(channelCount);
-        const present = await this.presenceCheck(this.user);
         console.log(present);
 
         const loyaltyScore = (messageCount * 2) + (activeDays * 5) + (channelCount * 3) + (present);
@@ -113,6 +151,24 @@ class Surveillance{
         console.log(`Loyalty score of user is ${loyaltyScore}!`);
 
         return loyaltyScore;
+    }
+
+    async startSurveillance(){
+        channels = await this.readFile("JSON files/channels.json");
+
+        const allMessages = await this.getMessages();
+        this.writeFile(allMessages);
+
+        this.dailyUpdate();
+    }
+
+    async dailyUpdate(){
+        cron.schedule(`0 0 * * *`, async () => {
+            const allMessages = await this.getMessages();
+            this.writeFile(allMessages);
+        
+            console.log("Updated files!");
+        });
     }
 
     //Lists all existing channels in workspace

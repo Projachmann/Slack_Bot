@@ -1,6 +1,5 @@
 Surveillance.js:
 - Impliment Thread reading
-- Saving Data from the last 7 days => not always a new api call
 - Checking WHAT user writes and putting it in the loyalty score
 
 Police.js:
@@ -15,3 +14,4 @@ Truth.js:
 
 General:
 - DMing the bot should be possible
+- Logging everything should be more readable

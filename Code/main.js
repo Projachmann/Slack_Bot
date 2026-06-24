@@ -34,6 +34,7 @@ app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
 
 app.command("/bigbrother-help", async ({ ack, respond }) => {
   await ack();
+
   await respond({
     text:
       `Available Commands:
@@ -76,6 +77,7 @@ app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
 
 telescreen.startTelescreen();
 police.register();
+surveillance.startSurveillance();
 
 (async () => {
   await app.start();
