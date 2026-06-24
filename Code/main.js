@@ -8,6 +8,7 @@ const Surveillance = require("../Code/Surveillance");
 const Telescreen = require("../Code/Telescreen");
 const Police = require("../Code/Police");
 const Truth = require("../Code/Truth");
+const { unwatchFile } = require("fs");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -53,13 +54,23 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
   });
 });
 
-app.command("/bigbrother-news", async ({ ack, respond }) =>{
+app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
+  const count = command.text.trim();
+
+  if(!Number.isInteger(count)){
+    count = undefined;
+  }
+
+  if(count < 1){
+    count = undefined;
+  }
+
   await ack();
 
-  const news = await truth.test();
+  const news = await truth.getRewrite(count);
 
   await respond({
-    text: news[0]
+    text: news
   })
 })
 

@@ -32,38 +32,45 @@ class Truth{
     }
 
     async rewriteHeadline(headline){
-        let data;
+        let returnData = [];
 
         try{
-            const res = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
-                model: "llama-3.3-70b-versatile",
-                temperature: 0.9,
-                messages: [{
-                    role: "system",
-                    content: msg
+            for(let i = 0; i < headline.length; i++){
+                const res = await axios.post("https://api.groq.com/openai/v1/chat/completions", {
+                    model: "llama-3.3-70b-versatile",
+                    temperature: 0.9,
+                    messages: [{
+                        role: "system",
+                        content: msg
+                    }, {
+                        role: "user",
+                        content: headline[0]
+                    }]
                 }, {
-                    role: "user",
-                    content: headline[0]
-                }]
-            }, {
-                headers: { Authorization: `Bearer ${process.env.GROQ_TOKEN}`, }
-            });
+                    headers: { Authorization: `Bearer ${process.env.GROQ_TOKEN}`, }
+                });
 
-            data = res.data.choices.map((c) => c.message.content);
+                const data = res.data.choices.map((c) => c.message.content);
+                returnData = returnData.concat(data);
+            }
         }catch(err){
             console.log(err);
         }
 
-        return data;
+        return returnData;
     }
 
-    async test(count = 1){
+    async getRewrite(count = 1){
         const headline = await this.getNews(count);
         const rewrite = await this.rewriteHeadline(headline);
+        let allHeadlines;
 
-        console.log(headline[0] + "   <= the headline");
-        console.log("");
-        console.log(rewrite[0] + "   <= the rewrite");
+        for(let i = 0; i < rewrite.length; i++){
+            console.log(headline[i] + "   <= the headline\n");
+            console.log(rewrite[i] + "   <= the rewrite\n\n");
+
+            allHeadlines = allHeadlines + "\n" + rewrite[i];
+        }
 
         return rewrite;
     }
