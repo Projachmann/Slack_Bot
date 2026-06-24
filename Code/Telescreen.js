@@ -67,11 +67,13 @@ class Telescreen{
         let hourPropaganda = Math.floor(Math.random() * 24);
         let propagandaJob = null;
 
+        console.log(`Next propaganda: ${hourPropaganda}:${minutePropaganda}`);
+
         //Daily two minute hate
         cron.schedule(`0 11 * * *`, () => {
             this.twoMinuteHate();
 
-            console.log("Two minute hate started!");
+            console.log(`Next propaganda message ${hourPropaganda}:${minutePropaganda}`);
         });
 
         //Daily propaganda
