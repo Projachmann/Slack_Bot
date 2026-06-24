@@ -11,7 +11,6 @@ Telescreen.js:
 
 Truth.js:
 - Storing what headlines have already been seen and not always repeating them
-- Using count
 - Automating news with Telescreen
 
 General:
