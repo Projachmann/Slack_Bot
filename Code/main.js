@@ -44,7 +44,11 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
 });
 
 app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
-  const userID = command.text.trim();
+  let userID = command.text.trim();
+
+  if(userID === ""){
+    userID = command.user_id;
+  }
 
   await ack();
 
@@ -73,7 +77,17 @@ app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
   await respond({
     text: news
   })
-})
+});
+
+app.command("/bigbrother-scoreboard", async ({ command, ack, respond }) =>{
+  await ack();
+
+  const text = await surveillance.getScoreboard(command.user_id);
+
+  await respond({
+    text: text
+  })
+});
 
 telescreen.startTelescreen();
 police.register();

@@ -3,3 +3,4 @@ node_modules
 testChannels.json
 userSentiment.json
 allMessages.json
+scoreboard.json

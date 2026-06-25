@@ -15,6 +15,7 @@ class Telescreen{
 
         try{
             const rawData = await fs.readFile(file, "utf8");
+            if(rawData.trim() === "") return [];
             data = JSON.parse(rawData);
             console.log("Broadcasts ready!");
         }catch(err){

@@ -3,9 +3,6 @@ Surveillance.js:
 - Checking WHAT user writes and putting it in the loyalty score
 - Loyalty score board: who is the most loyal
 
-Police.js:
-- Connect negative and positive sentiment with Surveillance
-
 Telescreen.js:
 - Making the two minute hate more interactive Ex.: message 1 minute before, new hate command?
 

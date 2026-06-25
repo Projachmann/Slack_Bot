@@ -45,6 +45,7 @@ class Surveillance{
 
         try{
             const data = await fs.readFile(file, "utf8");
+            if(data.trim() === "") return [];
             rawData = JSON.parse(data);
             console.log("Json file read!");
         }catch(err){
@@ -159,16 +160,67 @@ class Surveillance{
 
         console.log(`Loyalty score of user is ${loyaltyScore}!`);
 
+        await this.scoreboard(user, loyaltyScore);
+
         return loyaltyScore;
     }
 
     async startSurveillance(){
+        await this.ensureFile("JSON files/scoreboard.json");
+        await this.ensureFile("JSON files/allMessages.json");
+        await this.ensureFile("JSON files/userSentiment.json");
+
         channels = await this.readFile("JSON files/channels.json");
 
         const allMessages = await this.getMessages();
         this.writeFile(allMessages);
 
         this.dailyUpdate();
+    }
+
+    async ensureFile(file, defaultContent = "[]"){
+        try{
+            await fs.access(file);
+            const raw = await fs.readFile(file, "utf8");
+
+            if(raw.trim() === "" || raw.trim() === "null"){
+                await fs.writeFile(file, defaultContent);
+                console.log(`Repaired empty file: ${file}`);
+            }
+        }catch(err){
+            await fs.writeFile(file, defaultContent);
+            console.log(`Created missing file: ${file}`);
+        }
+    }
+
+    async scoreboard(user, score){
+        const scoreboard = await this.readFile("JSON files/scoreboard.json");
+
+        const userCheck = scoreboard.findIndex(e => e.user === user);
+
+        if(userCheck !== -1){
+            scoreboard[userCheck].score = score;
+        }else{
+            scoreboard.push({ user, score });
+        }
+
+        scoreboard.sort((a, b) => b.score - a.score);
+
+        await this.writeFile(scoreboard, "JSON files/scoreboard.json");
+    }
+
+    async getScoreboard(user){
+        const scoreboard = await this.readFile("JSON files/scoreboard.json");
+        const top = scoreboard.slice(0, 10).map((entry, i) => `${i + 1}. <@${entry.user}> — ${entry.score} pts`).join("\n");
+
+        const userRank = scoreboard.findIndex(e => e.user === user);
+        const yourPlace = userRank === -1
+            ? "You are not on the scoreboard yet. Run /bigbrother-loyalty first."
+            : userRank < 10
+                ? "You are already in the top 10!"
+                : `${userRank + 1}. <@${scoreboard[userRank].user}> — ${scoreboard[userRank].score} pts`;
+        
+        return `*Loyalty Scoreboard:*\n${top}\n\n*Your place:*\n${yourPlace}`;
     }
 
     async dailyUpdate(){

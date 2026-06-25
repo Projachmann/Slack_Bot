@@ -137,13 +137,14 @@ class Police{
             }
     
             console.log("Messages saved!");
-        }
+    }
 
     async readFile(file){
         let data;
     
         try{
             const rawData = await fs.readFile(file, "utf8");
+            if(rawData.trim() === "") return [];
             data = JSON.parse(rawData);
             console.log("Responding...");
         }catch(err){
