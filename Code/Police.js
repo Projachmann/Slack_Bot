@@ -1,16 +1,12 @@
 const axios = require("axios");
 const fs = require("fs/promises");
 
-let nVal;
-let pVal;
-let channelID;
-
 class Police{
     constructor(app, negativeValue, positiveValue, channel){
         this.app = app;
-        nVal = negativeValue;
-        pVal = positiveValue;
-        channelID = channel;
+        this.nVal = negativeValue;
+        this.pVal = positiveValue;
+        this.channelID = channel;
     }
 
     async preprocess(text){
@@ -60,27 +56,31 @@ class Police{
         this.app.message(async ({ message, client }) => {
             if (message.subtype) return;
             if (!message.text) return;
-            if (message.channel !== channelID) return;
+            if (message.channel !== this.channelID) return;
 
             console.log("Message received!");
 
             try{
                 const score = await this.callApi(message.text);
 
-                if (score[1] >= nVal){
+                if (score[1] >= this.nVal){
                     await client.chat.postMessage({
-                        channel: channelID,
+                        channel: this.channelID,
                         thread_ts: message.ts,
                         text: await this.getResponse("negative", message.user),
                     });
+
+                    await this.saveSentiment(message, "negative");
                 }
 
-                if(score[0] >= pVal){
+                if(score[0] >= this.pVal){
                     await client.chat.postMessage({
-                        channel: channelID,
+                        channel: this.channelID,
                         thread_ts: message.ts,
                         text: await this.getResponse("positive", message.user),
                     });
+
+                    await this.saveSentiment(message, "positive");
                 }
 
                 console.log(`Positive ${score[0]} | Negative ${score[1]}`)
@@ -100,10 +100,44 @@ class Police{
         }else if(sent === "positive"){
             responses = await this.readFile("JSON files/positiveSentiment.json");
             msg = responses[Math.floor(Math.random() * responses.length)].replace("{user}", user);
+        }else{
+            console.warn(`Unknown sentiment: ${sent}`);
+            return null;
         }
 
         return msg;
     }
+
+    async saveSentiment(message, sent){
+        const msgToBeSaved = [{
+            user: message.user,
+            ts: message.ts,
+            sentiment: sent
+        }];
+
+        await this.updateFiles(msgToBeSaved);
+    }
+
+    async updateFiles(msg){
+        const oldMsg = await this.readFile("JSON files/userSentiment.json");
+        
+        const cutoff = Math.floor(Date.now() / 1000) - 2592000;
+        const merged = [...oldMsg.filter(m => parseFloat(m.ts) > cutoff), ...msg];
+
+        await this.writeFile(merged);
+
+        console.log("Updated files!")
+    }
+
+    async writeFile(data, file = "JSON files/userSentiment.json"){
+            try{
+                await fs.writeFile(file, JSON.stringify(data));
+            }catch(err){
+                console.log(err);
+            }
+    
+            console.log("Messages saved!");
+        }
 
     async readFile(file){
         let data;
@@ -114,6 +148,7 @@ class Police{
             console.log("Responding...");
         }catch(err){
             console.log(err);
+            return [];
         }
 
         return data;

@@ -27,6 +27,7 @@ class Surveillance{
         }
 
         let present;
+
         switch(this.data.presence){
             case "active":
                 present = 50;
@@ -118,6 +119,13 @@ class Surveillance{
         return userMessages;
     }
 
+    async sentimentCheck(user){
+        const allMessages = await this.readFile("JSON files/userSentiment.json");
+        const userMessages = allMessages.filter(m => m.user === user);
+
+        return userMessages;
+    }
+
     async updateFiles(){
         const oldMsg = await this.readFile("JSON files/allMessages.json");
         const youngest = oldMsg.reduce((a, b) => a.ts > b.ts ? a : b);
@@ -129,24 +137,25 @@ class Surveillance{
         const merged = [...oldMsg.filter(m => parseFloat(m.ts) > cutoff), ...newMsg];
 
         await this.writeFile(merged);
+
+        console.log("Updated files!")
     }
 
     async calculateLoyalyScore(user){
         await this.updateFiles();
 
         const userMessages = await this.historyCheck(user);
+        const userSentiment = await this.sentimentCheck(user);
 
         const activeDays = new Set(userMessages.map(msg => new Date(msg.ts * 1000).toDateString())).size;
         const messageCount = userMessages.length;
         const channelCount = new Set(userMessages.map(msg => msg.channel)).size;
         const present = await this.presenceCheck(user);
 
-        console.log(activeDays);
-        console.log(messageCount);
-        console.log(channelCount);
-        console.log(present);
+        const positiveMsg = userSentiment.filter(msg => msg.sentiment === "positive").length;
+        const negativeMsg = userSentiment.filter(msg => msg.sentiment === "negative").length;
 
-        const loyaltyScore = (messageCount * 2) + (activeDays * 5) + (channelCount * 3) + (present);
+        const loyaltyScore = (messageCount * 2) + (activeDays * 5) + (channelCount * 3) + present + (positiveMsg * 10) + (-negativeMsg * 20);
 
         console.log(`Loyalty score of user is ${loyaltyScore}!`);
 
@@ -164,10 +173,7 @@ class Surveillance{
 
     async dailyUpdate(){
         cron.schedule(`0 0 * * *`, async () => {
-            const allMessages = await this.getMessages();
-            this.writeFile(allMessages);
-        
-            console.log("Updated files!");
+            this.updateFiles();
         });
     }
 

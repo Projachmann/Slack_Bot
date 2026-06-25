@@ -1,3 +1,5 @@
 node_modules
 .env
 testChannels.json
+userSentiment.json
+allMessages.json

@@ -1,6 +1,7 @@
 Surveillance.js:
 - Impliment Thread reading
 - Checking WHAT user writes and putting it in the loyalty score
+- Loyalty score board: who is the most loyal
 
 Police.js:
 - Connect negative and positive sentiment with Surveillance
