@@ -2,12 +2,10 @@ const axios = require("axios");
 const cron = require("node-cron");
 const fs = require("fs/promises");
 
-let channelID;
-
 class Telescreen{
     constructor(app, channel){
         this.app = app;
-        channelID = channel;
+        this.channelID = channel;
     }
 
     async readFile(file){
@@ -31,7 +29,7 @@ class Telescreen{
 
         try{
             const res = await axios.post('https://slack.com/api/chat.postMessage', {
-                channel: channelID, text: broadcast.broadcast }, {
+                channel: this.channelID, text: broadcast.broadcast }, {
                 headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` }
             });
 
@@ -50,7 +48,7 @@ class Telescreen{
 
                 try{
             const res = await axios.post('https://slack.com/api/chat.postMessage', {
-                channel: channelID, text: broadcast.opening }, {
+                channel: this.channelID, text: broadcast.opening }, {
                 headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` }
             });
 
@@ -63,7 +61,7 @@ class Telescreen{
         }
     }
 
-    async startTelescreen(){
+    async startTelescreen(truth){
         let minutePropaganda = Math.floor(Math.random() * 60);
         let hourPropaganda = Math.floor(Math.random() * 24);
         let propagandaJob = null;
@@ -93,6 +91,7 @@ class Telescreen{
         };
 
         schedulePropaganda();
+        truth.dailyNews();
     }
 }
 

@@ -23,7 +23,7 @@ const positiveThreshold = 0.85;
 const surveillance = new Surveillance(app);
 const telescreen = new Telescreen(app, channelID);
 const police = new Police(app, negativeThreshold, positiveThreshold, channelID);
-const truth = new Truth(app);
+const truth = new Truth(app, channelID);
 
 app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
@@ -89,7 +89,7 @@ app.command("/bigbrother-scoreboard", async ({ command, ack, respond }) =>{
   })
 });
 
-telescreen.startTelescreen();
+telescreen.startTelescreen(truth);
 police.register();
 surveillance.startSurveillance();
 

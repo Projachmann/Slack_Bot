@@ -1,4 +1,5 @@
 const axios = require("axios");
+const cron = require("node-cron");
 const fs = require("fs/promises");
 
 const msg = `
@@ -12,8 +13,9 @@ Rules:
 `;
 
 class Truth{
-    constructor(app){
+    constructor(app, channel){
         this.app = app;
+        this.channelID = channel;
     }
 
     async getNews(count = 1){
@@ -68,6 +70,74 @@ class Truth{
         console.log(allHeadlines);
 
         return allHeadlines;
+    }
+
+    async readFile(file = "JSON files/headlines.json"){
+        let rawData = [];
+    
+        try{
+            const data = await fs.readFile(file, "utf8");
+            if(data.trim() === "") return [];
+            rawData = JSON.parse(data);
+            console.log("Json file read!");
+        }catch(err){
+            console.log(err);
+        }
+
+        return rawData;
+    }
+    
+    async writeFile(data, file = "JSON files/headlines.json"){
+        try{
+            await fs.writeFile(file, JSON.stringify(data));
+        }catch(err){
+            console.log(err);
+        }
+    
+        console.log("Messages saved!");
+    }
+
+    async postNews() {
+        const headlines = await this.getRewrite();
+
+        try {
+            const res = await axios.post("https://slack.com/api/chat.postMessage", {
+                channel: this.channelID,
+                text: `*📰 Ministry of Truth — Daily Briefing:*\n\n${headlines}`,
+            }, {
+                headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+            });
+
+            if (res.data.ok === false) {
+                console.log(res.data.error);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    async dailyNews(){
+        let minuteNews = Math.floor(Math.random() * 60);
+        let hourNews = Math.floor(Math.random() * 24);
+        let newsJob = null;
+
+        console.log(`Next news briefing: ${hourNews}:${minuteNews}`);
+
+        const scheduleNews = () => {
+            if (newsJob) newsJob.stop();
+
+            newsJob = cron.schedule(`${minuteNews} ${hourNews} * * *`, () => {
+                this.postNews();
+
+                minuteNews = Math.floor(Math.random() * 60);
+                hourNews = Math.floor(Math.random() * 24);
+                console.log(`Next news briefing: ${hourNews}:${minuteNews}`);
+
+                scheduleNews();
+            });
+        };
+
+        scheduleNews();
     }
 }
 
