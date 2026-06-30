@@ -36,10 +36,13 @@ app.command("/bigbrother-help", async ({ ack, respond }) => {
   await ack();
 
   await respond({
-    text:
-      `Available Commands:
+    text:`
+      *Available Commands:*
       /bigbrother-ping - Check bot latency
-      /bigbrother-help - Shows this interface`
+      /bigbrother-loyalty [user] - Check a citizen's loyalty score
+      /bigbrother-scoreboard - View the Top 10 most loyal citizens
+      /bigbrother-news [count] - Read the latest Ministry of Truth headlines
+      /bigbrother-hate boost - FEED THE FURY! Escalate the Two Minute Hate intensity`
   });
 });
 
@@ -88,6 +91,18 @@ app.command("/bigbrother-scoreboard", async ({ command, ack, respond }) =>{
     text: text
   })
 });
+
+app.command("/bigbrother-hate", async ({ ack, respond }) =>{
+  await ack();
+
+  try {
+    const responseText = await telescreen.handleHateCommand(command);
+    await respond({ text: responseText });
+  } catch (err) {
+    console.error("Error in /bigbrother-hate:", err);
+    await respond({ text: "The Ministry encountered an error processing this request." });
+  }
+})
 
 telescreen.startTelescreen(truth);
 police.register();

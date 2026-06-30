@@ -1,13 +1,3 @@
-Surveillance.js:
-- Impliment Thread reading
-- Checking WHAT user writes and putting it in the loyalty score
-
-Telescreen.js:
-- Making the two minute hate more interactive Ex.: message 1 minute before, new hate command?
-
-Truth.js:
-- Automating news with Telescreen
-
 General:
 - DMing the bot should be possible
 - Logging everything should be more readable

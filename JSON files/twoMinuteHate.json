@@ -8,5 +8,25 @@
   {"opening": "⚠️ Hate session commencing. The Brotherhood is real. Your anger is encouraged. Proceed."},
   {"opening": "⚠️ TWO MINUTES HATE: Big Brother has authorised full emotional output. Begin now."},
   {"opening": "⚠️ Attention all citizens: the enemy of the Party speaks. Respond with appropriate fury."},
-  {"opening": "⚠️ The ritual begins. Goldstein. The Brotherhood. Chaos. You know what to feel."}
+  {"opening": "⚠️ The ritual begins. Goldstein. The Brotherhood. Chaos. You know what to feel."},
+
+  {"roar": "🔥 ROAR STAGE engaged. The screen flickers louder. The Party is satisfied. Continue."},
+  {"roar": "🔥 Stage Two: ROAR. Your voices are heard. The enemy trembles. Press on."},
+  {"roar": "🔥 ROAR threshold met. The Telescreen widens. Goldstein is sweating. Good."},
+  {"roar": "🔥 The Party thanks you for your ROAR. The Brotherhood is listening. Intensify."},
+  {"roar": "🔥 ROAR in full effect. Every scream is logged. Every silence is noted. Continue."},
+
+  {"frenzy": "💢 FRENZY UNLEASHED. The Telescreen is saturated. Big Brother watches in approval. SCREAM."},
+  {"frenzy": "💢 STAGE THREE: FRENZY. There is no turning back. The Brotherhood is a lie. Goldstein is a corpse. YELL."},
+  {"frenzy": "💢 FRENZY: maximum output. The room shakes. Doublethink is mandatory. Hate harder."},
+  {"frenzy": "💢 Frenzy threshold breached. Every word of the Manifesto burns. You are victory."},
+  {"frenzy": "💢 FRENZY MAXIMUM. The face on the screen is melting. This is correct. This is good."},
+
+  {"transition": "🟥➡️🟧 STAGE ESCALATION: The Hate has been raised to STAGE {stage}. The Party is pleased."},
+  {"transition": "🟧➡️🟥 STAGE ESCALATION: We have reached STAGE {stage}. The Telescreen grows louder. Continue."},
+  {"transition": "📢 Escalation confirmed — STAGE {stage} is now active. Big Brother acknowledges your effort."},
+
+  {"refusal": "The Hate period is not yet authorised. Return at the appointed hour."},
+  {"refusal": "The Telescreen is silent. The ritual has not begun. Stand by."},
+  {"refusal": "Your fury is noted, but unauthorised. The Hate begins at 11:00 sharp."}
 ]
