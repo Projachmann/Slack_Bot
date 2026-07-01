@@ -1,5 +1,8 @@
 const axios = require("axios");
 const fs = require("fs/promises");
+const logger = require("./Logger");
+
+logger.setSubsystem("Police");
 
 class Police{
     constructor(app, negativeValue, positiveValue, channel){
@@ -30,15 +33,15 @@ class Police{
             });
 
             data = res.data;
-            console.log(data);
+            logger.debug("Hugging Face response received", { scores: data?.[0]?.map(d => ({ label: d.label, score: Number(d.score.toFixed(3)) })) });
         }catch(err){
-            console.log(err);
+            logger.error("Hugging Face API call failed", err, { endpoint: "twitter-roberta-base-sentiment-latest" });
         }
 
         if (!data) return [0, 0];
 
         data = data[0];
-        
+
         const val = [getValue("positive"), getValue("negative")];
 
         function getValue(sentiment){
@@ -58,7 +61,7 @@ class Police{
             if (!message.text) return;
             if (message.channel !== this.channelID) return;
 
-            console.log("Message received!");
+            logger.debug("Message received", { user: message.user, channel: message.channel, ts: message.ts, length: message.text.length });
 
             try{
                 const score = await this.callApi(message.text);
@@ -83,9 +86,9 @@ class Police{
                     await this.saveSentiment(message, "positive");
                 }
 
-                console.log(`Positive ${score[0]} | Negative ${score[1]}`)
+                logger.info("Sentiment scored", { user: message.user, positive: Number(score[0].toFixed(3)), negative: Number(score[1].toFixed(3)) });
             }catch(err){
-                console.log(err);
+                logger.error("Failed to process message", err, { user: message.user, ts: message.ts });
             }
         });
     }
@@ -101,7 +104,7 @@ class Police{
             responses = await this.readFile("JSON files/positiveSentiment.json");
             msg = responses[Math.floor(Math.random() * responses.length)].replace("{user}", user);
         }else{
-            console.warn(`Unknown sentiment: ${sent}`);
+            logger.warn("Unknown sentiment requested", { sentiment: sent });
             return null;
         }
 
@@ -115,43 +118,45 @@ class Police{
             sentiment: sent
         }];
 
+        logger.info("Saving sentiment", { user: message.user, sentiment: sent, ts: message.ts });
         await this.updateFiles(msgToBeSaved);
     }
 
     async updateFiles(msg){
         const oldMsg = await this.readFile("JSON files/userSentiment.json");
-        
+
         const cutoff = Math.floor(Date.now() / 1000) - 2592000;
         const merged = [...oldMsg.filter(m => parseFloat(m.ts) > cutoff), ...msg];
 
         await this.writeFile(merged);
 
-        console.log("Updated files!")
+        logger.info("Sentiment file updated", { added: msg.length, total: merged.length });
     }
 
     async writeFile(data, file = "JSON files/userSentiment.json"){
             try{
                 await fs.writeFile(file, JSON.stringify(data));
             }catch(err){
-                console.log(err);
+                logger.error("Failed to write file", err, { file });
+                return;
             }
-    
-            console.log("Messages saved!");
+
+            logger.debug("File written", { file, items: Array.isArray(data) ? data.length : undefined });
     }
 
     async readFile(file){
         let data;
-    
+
         try{
             const rawData = await fs.readFile(file, "utf8");
             if(rawData.trim() === "") return [];
             data = JSON.parse(rawData);
-            console.log("Responding...");
         }catch(err){
-            console.log(err);
+            logger.error("Failed to read file", err, { file });
             return [];
         }
 
+        logger.debug("File read", { file, items: Array.isArray(data) ? data.length : undefined });
         return data;
     }
 }

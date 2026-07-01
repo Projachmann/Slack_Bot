@@ -1,6 +1,9 @@
 const axios = require("axios");
 const cron = require("node-cron");
 const fs = require("fs/promises");
+const logger = require("./Logger");
+
+logger.setSubsystem("Truth");
 
 const msg = `
 Rewrite news headlines in a style inspired by Orwell's 1984.
@@ -26,10 +29,16 @@ class Truth{
                 params: { language: "en", pageSize: count, apiKey: process.env.NEWS_TOKEN },
             });
         }catch(err){
-            console.log(err);
+            logger.error("NewsAPI fetch failed", err, { count });
+        }
+
+        if(!res || !res.data){
+            logger.warn("No response from NewsAPI", { count });
+            return [];
         }
 
         const data = await res.data.articles.map((a) => a.title).filter(Boolean);
+        logger.info("News fetched", { requested: count, received: data.length });
         return data;
     }
 
@@ -56,45 +65,46 @@ class Truth{
                 returnData = returnData.concat(data);
             }
         }catch(err){
-            console.log(err);
+            logger.error("Groq rewrite failed", err, { headlines: headline.length });
         }
 
+        logger.info("Headlines rewritten", { count: returnData.length });
         return returnData;
     }
 
     async getRewrite(count = 1){
         const headline = await this.getNews(count);
+        if(headline.length === 0) return "The Ministry has no news to share at this time.";
         const rewrite = await this.rewriteHeadline(headline);
         const allHeadlines = rewrite.join("\n\n");
-
-        console.log(allHeadlines);
 
         return allHeadlines;
     }
 
     async readFile(file = "JSON files/headlines.json"){
         let rawData = [];
-    
+
         try{
             const data = await fs.readFile(file, "utf8");
             if(data.trim() === "") return [];
             rawData = JSON.parse(data);
-            console.log("Json file read!");
         }catch(err){
-            console.log(err);
+            logger.error("Failed to read file", err, { file });
         }
 
+        logger.debug("File read", { file, items: rawData.length });
         return rawData;
     }
-    
+
     async writeFile(data, file = "JSON files/headlines.json"){
         try{
             await fs.writeFile(file, JSON.stringify(data));
         }catch(err){
-            console.log(err);
+            logger.error("Failed to write file", err, { file });
+            return;
         }
-    
-        console.log("Messages saved!");
+
+        logger.debug("File written", { file, items: Array.isArray(data) ? data.length : undefined });
     }
 
     async postNews() {
@@ -109,10 +119,12 @@ class Truth{
             });
 
             if (res.data.ok === false) {
-                console.log(res.data.error);
+                logger.warn("Slack API error posting news briefing", { error: res.data.error, channel: this.channelID });
+            }else{
+                logger.info("Daily briefing posted", { channel: this.channelID });
             }
         } catch (err) {
-            console.log(err);
+            logger.error("Failed to post daily briefing", err, { channel: this.channelID });
         }
     }
 
@@ -121,7 +133,7 @@ class Truth{
         let hourNews = Math.floor(Math.random() * 24);
         let newsJob = null;
 
-        console.log(`Next news briefing: ${hourNews}:${minuteNews}`);
+        logger.info("Daily news scheduled", { nextBriefing: `${hourNews}:${String(minuteNews).padStart(2, "0")}` });
 
         const scheduleNews = () => {
             if (newsJob) newsJob.stop();
@@ -131,7 +143,7 @@ class Truth{
 
                 minuteNews = Math.floor(Math.random() * 60);
                 hourNews = Math.floor(Math.random() * 24);
-                console.log(`Next news briefing: ${hourNews}:${minuteNews}`);
+                logger.debug("Next news briefing scheduled", { time: `${hourNews}:${String(minuteNews).padStart(2, "0")}` });
 
                 scheduleNews();
             });

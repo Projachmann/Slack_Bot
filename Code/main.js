@@ -8,7 +8,10 @@ const Surveillance = require("../Code/Surveillance");
 const Telescreen = require("../Code/Telescreen");
 const Police = require("../Code/Police");
 const Truth = require("../Code/Truth");
+const logger = require("../Code/Logger");
 const { unwatchFile } = require("fs");
+
+logger.setSubsystem("Main");
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -29,6 +32,7 @@ app.command("/bigbrother-ping", async ({ command, ack, respond }) => {
   const start = Date.now();
   await ack();
   const latency = Date.now() - start;
+  logger.info("Ping command", { user: command.user_id, latencyMs: latency });
   await respond({ text: `I am Watching!\nLatency: ${latency}ms` });
 });
 
@@ -55,6 +59,7 @@ app.command("/bigbrother-loyalty", async ({ command, ack, respond }) =>{
 
   await ack();
 
+  logger.info("Loyalty command", { caller: command.user_id, target: userID });
   const loyaltyScore = await surveillance.calculateLoyalyScore(userID);
 
   await respond({
@@ -75,6 +80,7 @@ app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
 
   await ack();
 
+  logger.info("News command", { caller: command.user_id, count });
   const news = await truth.getRewrite(count);
 
   await respond({
@@ -85,6 +91,7 @@ app.command("/bigbrother-news", async ({ command, ack, respond }) =>{
 app.command("/bigbrother-scoreboard", async ({ command, ack, respond }) =>{
   await ack();
 
+  logger.info("Scoreboard command", { caller: command.user_id });
   const text = await surveillance.getScoreboard(command.user_id);
 
   await respond({
@@ -96,10 +103,10 @@ app.command("/bigbrother-hate", async ({ ack, respond }) =>{
   await ack();
 
   try {
-    const responseText = await telescreen.handleHateCommand(command);
+    const responseText = await telescreen.handleHateCommand();
     await respond({ text: responseText });
   } catch (err) {
-    console.error("Error in /bigbrother-hate:", err);
+    logger.error("Error in /bigbrother-hate", err);
     await respond({ text: "The Ministry encountered an error processing this request." });
   }
 })
@@ -110,5 +117,5 @@ surveillance.startSurveillance();
 
 (async () => {
   await app.start();
-  console.log("bot is running!");
+  logger.info("Bot started", { socketMode: true, channel: channelID });
 })();

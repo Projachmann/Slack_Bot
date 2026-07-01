@@ -1,6 +1,9 @@
 const axios = require("axios");
 const cron = require("node-cron");
 const fs = require("fs/promises");
+const logger = require("./Logger");
+
+logger.setSubsystem("Telescreen");
 
 let hate = true;
 
@@ -25,11 +28,11 @@ class Telescreen{
             const rawData = await fs.readFile(file, "utf8");
             if(rawData.trim() === "") return [];
             data = JSON.parse(rawData);
-            console.log("Broadcasts ready!");
         }catch(err){
-            console.log(err);
+            logger.error("Failed to read file", err, { file });
         }
 
+        logger.debug("File read", { file, items: Array.isArray(data) ? data.length : undefined });
         return data;
     }
 
@@ -37,10 +40,10 @@ class Telescreen{
         try{
             await fs.writeFile(file, JSON.stringify(data, null, 2));
         }catch(err){
-            console.log(err);
+            logger.error("Failed to write file", err, { file });
             return;
         }
-        console.log(`${file} saved!`);
+        logger.debug("File written", { file, items: Array.isArray(data) ? data.length : undefined });
     }
 
     async ensureFile(file, defaultContent = "[]"){
@@ -50,11 +53,11 @@ class Telescreen{
 
             if(raw.trim() === "" || raw.trim() === "null"){
                 await fs.writeFile(file, defaultContent);
-                console.log(`Repaired empty file: ${file}`);
+                logger.warn("Repaired empty file", { file });
             }
         }catch(err){
             await fs.writeFile(file, defaultContent);
-            console.log(`Created missing file: ${file}`);
+            logger.info("Created missing file", { file });
         }
     }
 
@@ -69,11 +72,13 @@ class Telescreen{
             });
 
             if(res.data.ok === false){
-                console.log(res.data.error);
+                logger.warn("Slack API error posting propaganda", { error: res.data.error, channel: this.channelID });
                 return;
             }
+
+            logger.info("Propaganda posted", { channel: this.channelID });
         }catch(err){
-            console.log(err);
+            logger.error("Failed to post propaganda", err, { channel: this.channelID });
         }
     }
 
@@ -89,11 +94,13 @@ class Telescreen{
             });
 
             if(res.data.ok === false){
-                console.log(res.data.error);
+                logger.warn("Slack API error starting two-minute hate", { error: res.data.error, channel: this.channelID });
                 return;
             }
+
+            logger.info("Two-minute hate opened", { channel: this.channelID });
         }catch(err){
-            console.log(err);
+            logger.error("Failed to start two-minute hate", err, { channel: this.channelID });
         }
     }
 
@@ -136,10 +143,12 @@ class Telescreen{
             });
 
             if(res.data.ok === false){
-                console.log(res.data.error);
+                logger.warn("Slack API error posting message", { error: res.data.error, channel: this.channelID });
+            }else{
+                logger.debug("Message posted", { channel: this.channelID, length: text.length });
             }
         }catch(err){
-            console.log(err);
+            logger.error("Failed to post message", err, { channel: this.channelID });
         }
     }
 
@@ -187,6 +196,12 @@ class Telescreen{
 
         await this.saveHateLevel(state);
 
+        if(escalated){
+            logger.info("Hate escalated", { stage: newStage, usageCount: state.usageCount });
+        }else{
+            logger.debug("Hate registered", { stage: state.stage, usageCount: state.usageCount });
+        }
+
         return { state, escalated, newStage };
     }
 
@@ -201,7 +216,7 @@ class Telescreen{
 
         if(escalated){
             await this.postTransition(newStage);
-            this.postStageContent(newStage).catch(err => console.log(err));
+            this.postStageContent(newStage).catch(err => logger.error("Stage content post failed", err, { stage: newStage }));
         }
 
         const nextThreshold = newStage < 2
@@ -256,7 +271,7 @@ class Telescreen{
         state.lastResetDate = today;
 
         await this.saveHateLevel(state);
-        console.log(`Multiplier recomputed: x${state.multiplier} (yesterday=${state.recentDays[state.recentDays.length - 1]?.calls ?? 0}, mean=${mean.toFixed(2)})`);
+        logger.info("Multiplier recomputed", { multiplier: state.multiplier, yesterdayCalls: state.recentDays[state.recentDays.length - 1]?.calls ?? 0, mean: Number(mean.toFixed(2)) });
     }
 
     async hateCounterRestore(){
@@ -286,17 +301,19 @@ class Telescreen{
         let hourPropaganda = Math.floor(Math.random() * 24);
         let propagandaJob = null;
 
-        console.log(`Next propaganda: ${hourPropaganda}:${minutePropaganda}`);
+        logger.info("Telescreen scheduled", { nextPropaganda: `${hourPropaganda}:${String(minutePropaganda).padStart(2, "0")}` });
 
         //Daily two minute hate
         cron.schedule(`0 11 * * *`, () => {
             hate = true;
+            logger.info("Two-minute hate window opened");
             this.twoMinuteHate();
         });
 
         //Daily two minute hate end
         cron.schedule(`2 11 * * *`, () => {
             hate = false;
+            logger.info("Two-minute hate window closed");
         });
 
         //Daily multiplier recompute (5 min after midnight)
@@ -313,7 +330,7 @@ class Telescreen{
 
                 minutePropaganda = Math.floor(Math.random() * 60);
                 hourPropaganda = Math.floor(Math.random() * 24);
-                console.log(`Next propaganda message ${hourPropaganda}:${minutePropaganda}`);
+                logger.debug("Next propaganda scheduled", { time: `${hourPropaganda}:${String(minutePropaganda).padStart(2, "0")}` });
 
                 schedulePropaganda();
                 });

@@ -1,6 +1,9 @@
 const axios = require("axios");
 const fs = require("fs/promises");
 const cron = require("node-cron");
+const logger = require("./Logger");
+
+logger.setSubsystem("Surveillance");
 
 let channels = [];
 
@@ -18,11 +21,11 @@ class Surveillance{
             });
             this.data = res.data;
         }catch(err){
-            console.log(err);
+            logger.error("Presence check failed", err, { user });
         }
 
         if(this.data.ok === false){
-            console.log(this.data.error);
+            logger.warn("Slack API returned error for presence", { user, error: this.data.error });
             return;
         }
 
@@ -37,6 +40,7 @@ class Surveillance{
                 break;
         }
 
+        logger.debug("Presence retrieved", { user, presence: this.data.presence, score: present });
         return present;
     }
 
@@ -47,11 +51,11 @@ class Surveillance{
             const data = await fs.readFile(file, "utf8");
             if(data.trim() === "") return [];
             rawData = JSON.parse(data);
-            console.log("Json file read!");
         }catch(err){
-            console.log(err);
+            logger.error("Failed to read file", err, { file });
         }
 
+        logger.debug("File read", { file, items: rawData.length });
         return rawData;
     }
 
@@ -59,23 +63,24 @@ class Surveillance{
         try{
             await fs.writeFile(file, JSON.stringify(data));
         }catch(err){
-            console.log(err);
+            logger.error("Failed to write file", err, { file });
+            return;
         }
 
-        console.log("Messages saved!");
+        logger.debug("File written", { file, items: Array.isArray(data) ? data.length : undefined });
     }
 
     async getMessages(oldest = Math.floor(Date.now() / 1000) - 604800){
         let cursor;
         let allMessages = [];
 
-        console.log("Starting Reading messages");
+        logger.info("Starting message fetch", { channels: channels.length, oldest });
 
         for(let i = 0; i < channels.length; i++){
             cursor = undefined;
             const channel = channels[i].id;
 
-            console.log(`Reading channels: ${i + 1}/${channels.length}`);
+            logger.info("Fetching channel history", { channel, index: i + 1, total: channels.length });
 
             try{
                 do{
@@ -88,13 +93,13 @@ class Surveillance{
 
                         if (res.status === 429){
                             const retryAfter = res.headers['retry-after'] || 10;
-                            console.log(`Rate limited, waiting ${retryAfter}s...`);
+                            logger.warn("Rate limited, waiting", { channel, seconds: retryAfter });
                             await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
                             continue;
                         }
 
                         if (!res.data.ok) {
-                            console.log(res.data.error);
+                            logger.warn("Slack API returned error for history", { channel, error: res.data.error });
                             break;
                         }
 
@@ -106,10 +111,11 @@ class Surveillance{
                     }
                 }while(cursor);
             }catch(err){
-                console.log(err);
+                logger.error("Failed to fetch channel history", err, { channel });
             }
         }
 
+        logger.info("Message fetch complete", { total: allMessages.length });
         return allMessages;
     }
 
@@ -132,14 +138,12 @@ class Surveillance{
         const youngest = oldMsg.reduce((a, b) => a.ts > b.ts ? a : b);
         const newMsg = await this.getMessages(youngest.ts);
 
-        console.log(newMsg.length);
-        
         const cutoff = Math.floor(Date.now() / 1000) - 604800;
         const merged = [...oldMsg.filter(m => parseFloat(m.ts) > cutoff), ...newMsg];
 
         await this.writeFile(merged);
 
-        console.log("Updated files!")
+        logger.info("All messages file updated", { added: newMsg.length, kept: merged.length });
     }
 
     async calculateLoyalyScore(user){
@@ -158,7 +162,7 @@ class Surveillance{
 
         const loyaltyScore = (messageCount * 2) + (activeDays * 5) + (channelCount * 3) + present + (positiveMsg * 10) + (-negativeMsg * 20);
 
-        console.log(`Loyalty score of user is ${loyaltyScore}!`);
+        logger.info("Loyalty score computed", { user, score: loyaltyScore, messageCount, activeDays, channelCount, present, positiveMsg, negativeMsg });
 
         await this.scoreboard(user, loyaltyScore);
 
@@ -185,11 +189,11 @@ class Surveillance{
 
             if(raw.trim() === "" || raw.trim() === "null"){
                 await fs.writeFile(file, defaultContent);
-                console.log(`Repaired empty file: ${file}`);
+                logger.warn("Repaired empty file", { file });
             }
         }catch(err){
             await fs.writeFile(file, defaultContent);
-            console.log(`Created missing file: ${file}`);
+            logger.info("Created missing file", { file });
         }
     }
 
@@ -200,8 +204,10 @@ class Surveillance{
 
         if(userCheck !== -1){
             scoreboard[userCheck].score = score;
+            logger.info("Scoreboard updated", { user, score });
         }else{
             scoreboard.push({ user, score });
+            logger.info("Scoreboard entry added", { user, score });
         }
 
         scoreboard.sort((a, b) => b.score - a.score);
@@ -239,7 +245,7 @@ class Surveillance{
         try{
             do{
                 i++;
-                console.log(i);
+                logger.info("Listing channels page", { page: i });
 
                 let res;
                 while(true){
@@ -255,7 +261,7 @@ class Surveillance{
 
                     if(res.status === 429){
                         const retryAfter = res.headers['retry-after'] || 30;
-                        console.log(`Rate limited, waiting ${retryAfter}s...`);
+                        logger.warn("Rate limited, waiting", { seconds: retryAfter });
                         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
                     } else {
                         break;
@@ -267,21 +273,21 @@ class Surveillance{
 
                 allChannelIDs = allChannelIDs.concat(ids);
                 allChannelNames = allChannelNames.concat(names);
-                
+
                 cursor = res.data.response_metadata.next_cursor;
             }while(cursor);
         }catch(err){
-            console.log(err);
+            logger.error("Failed to list channels", err);
         }
 
         try{
             const combined = allChannelIDs.map((id, i) => ({ id, name: allChannelNames[i] }));
             await fs.writeFile("channels.json", JSON.stringify(combined));
         }catch(err){
-            console.log(err);
+            logger.error("Failed to write channels.json", err);
         }
 
-        console.log("File created!");
+        logger.info("Channels file created", { count: allChannelIDs.length });
     }
 }
 
